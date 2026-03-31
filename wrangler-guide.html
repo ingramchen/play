@@ -40,11 +40,20 @@ section{margin:32px 0}
 .arch-node.highlight{border-color:var(--accent);background:rgba(246,130,31,0.08)}
 
 .bindings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:16px}
-.binding-chip{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px;text-align:center;font-size:0.78rem;transition:all .2s;cursor:default}
+.binding-chip{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px;text-align:center;font-size:0.78rem;transition:all .2s;cursor:pointer;user-select:none}
 .binding-chip:hover{border-color:var(--accent);background:rgba(246,130,31,0.06)}
+.binding-chip.active{border-color:var(--accent);background:rgba(246,130,31,0.1);box-shadow:0 0 12px rgba(246,130,31,0.1)}
 .binding-chip .b-icon{font-size:1.1rem;display:block;margin-bottom:2px}
 .binding-chip .b-name{font-weight:600;color:var(--text)}
 .binding-chip .b-desc{color:var(--text2);font-size:0.7rem}
+.binding-detail{margin-top:16px;background:var(--card);border-radius:12px;padding:0;border:1px solid rgba(246,130,31,0.15);overflow:hidden;max-height:0;opacity:0;transition:max-height .4s ease,opacity .3s ease,padding .3s ease,margin .3s ease}
+.binding-detail.open{max-height:600px;opacity:1;padding:20px 24px;margin-top:16px}
+.binding-detail .bd-title{font-weight:600;color:var(--accent);margin-bottom:10px;font-size:0.9rem}
+.binding-detail .bd-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.binding-detail .bd-info{font-size:0.78rem;color:var(--text2);line-height:1.9;list-style:none}
+.binding-detail .bd-code{margin-top:10px;background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.7;color:var(--text2)}
+.binding-detail .bd-note{margin-top:10px;padding-top:10px;border-top:1px solid var(--bg3);font-size:0.72rem;color:#6a7490}
+@media(max-width:640px){.binding-detail .bd-grid{grid-template-columns:1fr}}
 
 /* Project Structure */
 .tree{background:var(--card);border-radius:12px;padding:20px 24px;font-family:var(--mono);font-size:0.82rem;border:1px solid rgba(246,130,31,0.15)}
@@ -174,90 +183,227 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
   </div>
 
   <div class="bindings-grid" style="margin-top:20px">
-    <div class="binding-chip"><span class="b-icon">&#128451;</span><div class="b-name">KV</div><div class="b-desc">Key-Value Store</div></div>
-    <div class="binding-chip"><span class="b-icon">&#128450;</span><div class="b-name">D1</div><div class="b-desc">SQLite Database</div></div>
-    <div class="binding-chip"><span class="b-icon">&#128230;</span><div class="b-name">R2</div><div class="b-desc">Object Storage</div></div>
-    <div class="binding-chip"><span class="b-icon">&#129520;</span><div class="b-name">Durable Objects</div><div class="b-desc">Stateful Actors</div></div>
-    <div class="binding-chip"><span class="b-icon">&#128236;</span><div class="b-name">Queues</div><div class="b-desc">Message Queue</div></div>
-    <div class="binding-chip"><span class="b-icon">&#128274;</span><div class="b-name">Secrets</div><div class="b-desc">Encrypted Env</div></div>
-    <div class="binding-chip"><span class="b-icon">&#128202;</span><div class="b-name">Analytics Engine</div><div class="b-desc">Event Logging</div></div>
-    <div class="binding-chip"><span class="b-icon">&#129302;</span><div class="b-name">Workers AI</div><div class="b-desc">ML Inference</div></div>
-    <div class="binding-chip" style="border-color:var(--cyan);background:rgba(34,211,238,0.06)"><span class="b-icon">&#9889;</span><div class="b-name">Cache API</div><div class="b-desc">Built-in (no binding)</div></div>
+    <div class="binding-chip" onclick="toggleBinding('kv')"><span class="b-icon">&#128451;</span><div class="b-name">KV</div><div class="b-desc">Key-Value Store</div></div>
+    <div class="binding-chip" onclick="toggleBinding('d1')"><span class="b-icon">&#128450;</span><div class="b-name">D1</div><div class="b-desc">SQLite Database</div></div>
+    <div class="binding-chip" onclick="toggleBinding('r2')"><span class="b-icon">&#128230;</span><div class="b-name">R2</div><div class="b-desc">Object Storage</div></div>
+    <div class="binding-chip" onclick="toggleBinding('do')"><span class="b-icon">&#129520;</span><div class="b-name">Durable Objects</div><div class="b-desc">Stateful Actors</div></div>
+    <div class="binding-chip" onclick="toggleBinding('queues')"><span class="b-icon">&#128236;</span><div class="b-name">Queues</div><div class="b-desc">Message Queue</div></div>
+    <div class="binding-chip" onclick="toggleBinding('secrets')"><span class="b-icon">&#128274;</span><div class="b-name">Secrets</div><div class="b-desc">Encrypted Env</div></div>
+    <div class="binding-chip" onclick="toggleBinding('ae')"><span class="b-icon">&#128202;</span><div class="b-name">Analytics Engine</div><div class="b-desc">Event Logging</div></div>
+    <div class="binding-chip" onclick="toggleBinding('ai')"><span class="b-icon">&#129302;</span><div class="b-name">Workers AI</div><div class="b-desc">ML Inference</div></div>
+    <div class="binding-chip" onclick="toggleBinding('cache')" style="border-color:var(--cyan);background:rgba(34,211,238,0.06)"><span class="b-icon">&#9889;</span><div class="b-name">Cache API</div><div class="b-desc">Built-in (no binding)</div></div>
   </div>
 
-  <!-- Cache vs KV -->
-  <div style="margin-top:20px;background:var(--card);border-radius:12px;padding:20px 24px;border:1px solid rgba(34,211,238,0.2)">
-    <div style="font-weight:600;color:var(--cyan);margin-bottom:12px;font-size:0.95rem">⚡ Cache API vs KV — What's the difference?</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--bg3)">
-        <div style="font-weight:600;color:var(--cyan);margin-bottom:8px;font-size:0.85rem">Cache API (built-in)</div>
-        <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:1.9">
-          <li>• No binding needed — <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">caches.default</code></li>
-          <li>• Stores HTTP <b style="color:var(--text)">Response</b> objects</li>
-          <li>• Expires via <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">Cache-Control</code> header</li>
-          <li>• <b style="color:var(--red)">May be evicted</b> anytime</li>
-          <li>• Per-colo (not globally consistent)</li>
+  <!-- KV Detail -->
+  <div class="binding-detail" id="bd-kv">
+    <div class="bd-title">🗃️ KV — Key-Value Store</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• <b style="color:var(--text)">Persistent</b> global key-value store</li>
+          <li>• <b style="color:var(--red)">Eventually consistent</b> — 寫入後最多 60 秒全球生效</li>
+          <li>• 適合<b style="color:var(--green)">讀多寫少</b>，不適合頻繁寫入</li>
+          <li>• 沒有 filter/query，只能 <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">list({ prefix })</code></li>
+          <li>• 單個 value 上限 25MB</li>
+          <li>• Free: 1,000 writes/day, 100,000 reads/day</li>
         </ul>
-        <div style="margin-top:10px;background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.7;color:var(--text2)">
-          <span style="color:var(--purple)">const</span> cache = caches.<span style="color:var(--accent2)">default</span>;<br>
-          <span style="color:var(--purple)">let</span> res = <span style="color:var(--purple)">await</span> cache.<span style="color:var(--blue)">match</span>(req);<br>
-          <span style="color:var(--purple)">if</span> (!res) {<br>
-          &nbsp;&nbsp;res = <span style="color:var(--purple)">await</span> <span style="color:var(--blue)">fetch</span>(origin);<br>
-          &nbsp;&nbsp;ctx.<span style="color:var(--blue)">waitUntil</span>(cache.<span style="color:var(--blue)">put</span>(req, res.<span style="color:var(--blue)">clone</span>()));<br>
-          }
-        </div>
+        <div class="bd-note">✅ 設定檔、feature flags、metadata<br>❌ session store、計數器、即時狀態</div>
       </div>
-      <div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--bg3)">
-        <div style="font-weight:600;color:var(--accent);margin-bottom:8px;font-size:0.85rem">KV (binding required)</div>
-        <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:1.9">
-          <li>• Declare in <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">wrangler.toml</code> → <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">env.APP_KV</code></li>
-          <li>• Stores <b style="color:var(--text)">string / ArrayBuffer / stream</b></li>
-          <li>• Optional TTL via <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">expirationTtl</code></li>
-          <li>• <b style="color:var(--green)">Persistent</b> — never auto-evicted</li>
-          <li>• Globally consistent (eventual)</li>
-        </ul>
-        <div style="margin-top:10px;background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.7;color:var(--text2)">
-          <span style="color:var(--purple)">const</span> val = <span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">get</span>(<span style="color:var(--green)">"key"</span>);<br>
-          <span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">put</span>(<span style="color:var(--green)">"key"</span>, <span style="color:var(--green)">"val"</span>);<br>
-          <span style="color:var(--text2)">// with TTL:</span><br>
-          <span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">put</span>(<span style="color:var(--green)">"k"</span>, <span style="color:var(--green)">"v"</span>, {<br>
-          &nbsp;&nbsp;<span style="color:var(--accent2)">expirationTtl</span>: <span style="color:var(--cyan)">3600</span><br>
-          });
-        </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">wrangler.toml</div>
+        <div class="bd-code"><span style="color:var(--purple)">[[kv_namespaces]]</span><br>binding = <span style="color:var(--green)">"APP_KV"</span><br>id = <span style="color:var(--green)">"abc123"</span></div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code"><span style="color:var(--purple)">const</span> val = <span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">get</span>(<span style="color:var(--green)">"key"</span>);<br><span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">put</span>(<span style="color:var(--green)">"key"</span>, <span style="color:var(--green)">"val"</span>);<br><span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">put</span>(<span style="color:var(--green)">"k"</span>, <span style="color:var(--green)">"v"</span>, {<br>&nbsp;&nbsp;<span style="color:var(--accent2)">expirationTtl</span>: <span style="color:var(--cyan)">3600</span><br>});</div>
       </div>
     </div>
   </div>
 
-  <!-- Gotchas -->
-  <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <!-- KV Gotchas -->
-    <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid rgba(248,113,113,0.25)">
-      <div style="font-weight:600;color:var(--red);margin-bottom:12px;font-size:0.9rem">⚠️ KV Gotchas</div>
-      <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:2">
-        <li>• <b style="color:var(--red)">Eventually consistent</b> — 寫入後最多 <b style="color:var(--text)">60 秒</b>才全球生效</li>
-        <li>• 適合<b style="color:var(--green)">讀多寫少</b>，不適合頻繁寫入</li>
-        <li>• 沒有 filter/query，只能 <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">list({ prefix })</code></li>
-        <li>• 單個 value 上限 25MB</li>
-        <li>• Free: 1,000 writes/day, 100,000 reads/day</li>
-      </ul>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bg3);font-size:0.72rem;color:#6a7490">
-        ✅ 適合：設定檔、feature flags、靜態資產 metadata<br>
-        ❌ 不適合：session store、計數器、即時狀態
+  <!-- D1 Detail -->
+  <div class="binding-detail" id="bd-d1">
+    <div class="bd-title">🗄️ D1 — SQLite Database</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• 邊緣 <b style="color:var(--text)">SQLite</b> 資料庫（serverless）</li>
+          <li>• DB 上限 <b style="color:var(--text)">10GB</b>（Free 500MB）</li>
+          <li>• <b style="color:var(--red)">Single writer</b> — 寫入不能並行</li>
+          <li>• 單次 query 讀取上限 20MB，回傳 100MB</li>
+          <li>• 支援 migrations（<code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">wrangler d1 migrations</code>）</li>
+          <li>• Free: 100K rows read/day, 5M/month</li>
+        </ul>
+        <div class="bd-note">✅ CRUD app、blog、小型 SaaS<br>❌ high-write / OLAP → 改用 Turso, Neon, Supabase</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">wrangler.toml</div>
+        <div class="bd-code"><span style="color:var(--purple)">[[d1_databases]]</span><br>binding = <span style="color:var(--green)">"DB"</span><br>database_name = <span style="color:var(--green)">"my-db"</span><br>database_id = <span style="color:var(--green)">"uuid-here"</span></div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code"><span style="color:var(--purple)">const</span> { results } = <span style="color:var(--purple)">await</span> env.DB<br>&nbsp;&nbsp;.<span style="color:var(--blue)">prepare</span>(<span style="color:var(--green)">"SELECT * FROM users WHERE id=?"</span>)<br>&nbsp;&nbsp;.<span style="color:var(--blue)">bind</span>(userId)<br>&nbsp;&nbsp;.<span style="color:var(--blue)">all</span>();</div>
       </div>
     </div>
-    <!-- D1 Gotchas -->
-    <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid rgba(248,113,113,0.25)">
-      <div style="font-weight:600;color:var(--red);margin-bottom:12px;font-size:0.9rem">⚠️ D1 Limits</div>
-      <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:2">
-        <li>• DB 上限 <b style="color:var(--text)">10GB</b>（Free 500MB）</li>
-        <li>• 底層 SQLite — <b style="color:var(--red)">single writer</b>，寫入不能並行</li>
-        <li>• 單次 query 讀取上限 20MB，回傳上限 100MB</li>
-        <li>• 不適合 high-write / OLAP 場景</li>
-        <li>• Free: 100,000 rows read/day, 5M rows read/month</li>
-      </ul>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bg3);font-size:0.72rem;color:#6a7490">
-        ✅ 適合：CRUD app、blog、小型 SaaS<br>
-        ❌ 爆了就換：Turso, Neon, Supabase, PlanetScale
+  </div>
+
+  <!-- R2 Detail -->
+  <div class="binding-detail" id="bd-r2">
+    <div class="bd-title">📦 R2 — Object Storage</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• S3 相容的物件儲存，<b style="color:var(--green)">零 egress 費用</b></li>
+          <li>• 單檔上限 <b style="color:var(--text)">5TB</b>，無總容量限制</li>
+          <li>• 支援 multipart upload</li>
+          <li>• 可開 public bucket（靜態網站 hosting）</li>
+          <li>• 支援 S3 API（現有工具可直接用）</li>
+          <li>• Free: 10GB storage, 10M reads/month</li>
+        </ul>
+        <div class="bd-note">✅ 圖片、影片、檔案上傳、備份<br>❌ 不適合頻繁小檔讀寫（用 KV）</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">wrangler.toml</div>
+        <div class="bd-code"><span style="color:var(--purple)">[[r2_buckets]]</span><br>binding = <span style="color:var(--green)">"BUCKET"</span><br>bucket_name = <span style="color:var(--green)">"my-bucket"</span></div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code"><span style="color:var(--purple)">await</span> env.BUCKET.<span style="color:var(--blue)">put</span>(<span style="color:var(--green)">"img/photo.jpg"</span>, file);<br><span style="color:var(--purple)">const</span> obj = <span style="color:var(--purple)">await</span> env.BUCKET.<span style="color:var(--blue)">get</span>(<span style="color:var(--green)">"img/photo.jpg"</span>);<br><span style="color:var(--purple)">const</span> list = <span style="color:var(--purple)">await</span> env.BUCKET.<span style="color:var(--blue)">list</span>({<br>&nbsp;&nbsp;<span style="color:var(--accent2)">prefix</span>: <span style="color:var(--green)">"img/"</span><br>});</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Durable Objects Detail -->
+  <div class="binding-detail" id="bd-do">
+    <div class="bd-title">🧩 Durable Objects — Stateful Actors</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• <b style="color:var(--text)">有狀態</b>的單例 actor，每個 ID 全球唯一</li>
+          <li>• <b style="color:var(--green)">Strong consistency</b>（與 KV 不同）</li>
+          <li>• 內建 WebSocket 支援（聊天室、協作）</li>
+          <li>• 自帶 transactional storage</li>
+          <li>• 可設 alarm（定時喚醒）</li>
+          <li>• 最複雜的 binding，學習曲線高</li>
+        </ul>
+        <div class="bd-note">✅ 即時協作、WebSocket、rate limiter、遊戲伺服器<br>❌ 簡單 CRUD（用 D1）</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">wrangler.toml</div>
+        <div class="bd-code"><span style="color:var(--purple)">[durable_objects]</span><br>bindings = [<br>&nbsp;&nbsp;{ name = <span style="color:var(--green)">"ROOMS"</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;class_name = <span style="color:var(--green)">"ChatRoom"</span> }<br>]</div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code"><span style="color:var(--purple)">const</span> id = env.ROOMS.<span style="color:var(--blue)">idFromName</span>(<span style="color:var(--green)">"room-1"</span>);<br><span style="color:var(--purple)">const</span> stub = env.ROOMS.<span style="color:var(--blue)">get</span>(id);<br><span style="color:var(--purple)">const</span> res = <span style="color:var(--purple)">await</span> stub.<span style="color:var(--blue)">fetch</span>(request);</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Queues Detail -->
+  <div class="binding-detail" id="bd-queues">
+    <div class="bd-title">📬 Queues — Message Queue</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• <b style="color:var(--text)">Pull/Push</b> message queue</li>
+          <li>• 保證 <b style="color:var(--green)">at-least-once</b> delivery</li>
+          <li>• 支援 batch consume（批次處理）</li>
+          <li>• 自動 retry + dead letter queue</li>
+          <li>• 最大 message size: 128KB</li>
+          <li>• Free: 1M messages/month</li>
+        </ul>
+        <div class="bd-note">✅ 背景任務、email 發送、webhook 處理<br>❌ 即時通訊（用 Durable Objects + WebSocket）</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">wrangler.toml</div>
+        <div class="bd-code"><span style="color:var(--purple)">[[queues.producers]]</span><br>binding = <span style="color:var(--green)">"MY_QUEUE"</span><br>queue = <span style="color:var(--green)">"my-queue"</span><br><br><span style="color:var(--purple)">[[queues.consumers]]</span><br>queue = <span style="color:var(--green)">"my-queue"</span></div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code"><span style="color:var(--text2)">// Producer</span><br><span style="color:var(--purple)">await</span> env.MY_QUEUE.<span style="color:var(--blue)">send</span>({ type: <span style="color:var(--green)">"email"</span>, to: <span style="color:var(--green)">"a@b.c"</span> });<br><br><span style="color:var(--text2)">// Consumer</span><br><span style="color:var(--purple)">async</span> <span style="color:var(--blue)">queue</span>(batch, env) {<br>&nbsp;&nbsp;<span style="color:var(--purple)">for</span> (<span style="color:var(--purple)">const</span> msg <span style="color:var(--purple)">of</span> batch.messages) {<br>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text2)">// process msg.body</span><br>&nbsp;&nbsp;&nbsp;&nbsp;msg.<span style="color:var(--blue)">ack</span>();<br>&nbsp;&nbsp;}<br>}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secrets Detail -->
+  <div class="binding-detail" id="bd-secrets">
+    <div class="bd-title">🔒 Secrets — Encrypted Environment Variables</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• 加密存儲，<b style="color:var(--green)">不寫在 wrangler.toml</b>（避免進 git）</li>
+          <li>• 程式中用 <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">env.SECRET_NAME</code> 取值（string）</li>
+          <li>• 不會出現在 Dashboard API 回傳中</li>
+          <li>• 每個 env（staging/prod）各自設定</li>
+          <li>• 本地開發用 <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">.dev.vars</code> 檔模擬</li>
+        </ul>
+        <div class="bd-note">與 [vars] 取用方式相同，差別在加密存儲和不外洩</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">CLI</div>
+        <div class="bd-code"><span style="color:var(--accent2)">$</span> wrangler secret put <span style="color:var(--green)">API_KEY</span><br><span style="color:var(--accent2)">$</span> wrangler secret put <span style="color:var(--green)">API_KEY</span> --env prod<br><span style="color:var(--accent2)">$</span> wrangler secret list</div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code"><span style="color:var(--purple)">const</span> key = env.<span style="color:var(--accent2)">API_KEY</span>;<br><span style="color:var(--purple)">await</span> <span style="color:var(--blue)">fetch</span>(url, {<br>&nbsp;&nbsp;headers: { Authorization: <span style="color:var(--green)">`Bearer ${env.API_KEY}`</span> }<br>});</div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">.dev.vars</div>
+        <div class="bd-code">API_KEY=dev-test-key<br>DB_URL=postgres://localhost/dev</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Engine Detail -->
+  <div class="binding-detail" id="bd-ae">
+    <div class="bd-title">📊 Analytics Engine — Event Logging</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• <b style="color:var(--text)">Write-optimized</b> 時序事件儲存</li>
+          <li>• 用 SQL API 查詢（類 ClickHouse）</li>
+          <li>• 每個 event 最多 20 個 blobs + 20 個 doubles</li>
+          <li>• 資料保留 <b style="color:var(--text)">90 天</b></li>
+          <li>• 適合自建 analytics（取代 GA）</li>
+          <li>• Free: 100K events/day</li>
+        </ul>
+        <div class="bd-note">✅ Page views、API metrics、自訂事件<br>❌ 長期資料保存（90 天限制）</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">wrangler.toml</div>
+        <div class="bd-code"><span style="color:var(--purple)">[[analytics_engine_datasets]]</span><br>binding = <span style="color:var(--green)">"ANALYTICS"</span></div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code">env.ANALYTICS.<span style="color:var(--blue)">writeDataPoint</span>({<br>&nbsp;&nbsp;<span style="color:var(--accent2)">blobs</span>: [<span style="color:var(--green)">"/api/users"</span>, <span style="color:var(--green)">"GET"</span>],<br>&nbsp;&nbsp;<span style="color:var(--accent2)">doubles</span>: [response.status, latencyMs],<br>&nbsp;&nbsp;<span style="color:var(--accent2)">indexes</span>: [<span style="color:var(--green)">"api"</span>]<br>});</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Workers AI Detail -->
+  <div class="binding-detail" id="bd-ai">
+    <div class="bd-title">🤖 Workers AI — ML Inference</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• 在邊緣執行 <b style="color:var(--text)">ML 模型</b>（Cloudflare GPU）</li>
+          <li>• 支援 LLM、embedding、image、translation 等</li>
+          <li>• 模型列表：Llama, Mistral, Stable Diffusion 等</li>
+          <li>• 搭配 Vectorize 做 RAG</li>
+          <li>• 不需自己管 GPU / infra</li>
+          <li>• Free: 10K neurons/day</li>
+        </ul>
+        <div class="bd-note">✅ 文字生成、翻譯、圖片辨識、embedding<br>❌ 大量推理需求（成本高）→ 用自架 GPU</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">wrangler.toml</div>
+        <div class="bd-code"><span style="color:var(--purple)">[ai]</span><br>binding = <span style="color:var(--green)">"AI"</span></div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin:10px 0 6px">Code</div>
+        <div class="bd-code"><span style="color:var(--purple)">const</span> res = <span style="color:var(--purple)">await</span> env.AI.<span style="color:var(--blue)">run</span>(<br>&nbsp;&nbsp;<span style="color:var(--green)">"@cf/meta/llama-3-8b-instruct"</span>,<br>&nbsp;&nbsp;{ messages: [<br>&nbsp;&nbsp;&nbsp;&nbsp;{ role: <span style="color:var(--green)">"user"</span>,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;content: <span style="color:var(--green)">"Hello"</span> }<br>&nbsp;&nbsp;]}<br>);</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cache API Detail -->
+  <div class="binding-detail" id="bd-cache" style="border-color:rgba(34,211,238,0.2)">
+    <div class="bd-title" style="color:var(--cyan)">⚡ Cache API — Built-in HTTP Cache</div>
+    <div class="bd-grid">
+      <div>
+        <ul class="bd-info">
+          <li>• <b style="color:var(--cyan)">不需要 binding</b> — <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">caches.default</code> 直接用</li>
+          <li>• 存 HTTP <b style="color:var(--text)">Response</b> 物件</li>
+          <li>• 依 <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">Cache-Control</code> header 過期</li>
+          <li>• <b style="color:var(--red)">隨時可能被清除</b>（不保證持久）</li>
+          <li>• Per-colo（非全球一致）</li>
+        </ul>
+        <div class="bd-note">與 KV 差異：Cache 是暫存 Response、會被清除；KV 是永久 key-value 儲存</div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:6px">Code（不需設定）</div>
+        <div class="bd-code"><span style="color:var(--purple)">const</span> cache = caches.<span style="color:var(--accent2)">default</span>;<br><span style="color:var(--purple)">let</span> res = <span style="color:var(--purple)">await</span> cache.<span style="color:var(--blue)">match</span>(req);<br><span style="color:var(--purple)">if</span> (!res) {<br>&nbsp;&nbsp;res = <span style="color:var(--purple)">await</span> <span style="color:var(--blue)">fetch</span>(origin);<br>&nbsp;&nbsp;ctx.<span style="color:var(--blue)">waitUntil</span>(<br>&nbsp;&nbsp;&nbsp;&nbsp;cache.<span style="color:var(--blue)">put</span>(req, res.<span style="color:var(--blue)">clone</span>())<br>&nbsp;&nbsp;);<br>}<br><span style="color:var(--purple)">return</span> res;</div>
       </div>
     </div>
   </div>
@@ -636,6 +782,26 @@ function switchFmt(fmt){
   document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===fmt));
   document.getElementById('config-toml').style.display=fmt==='toml'?'block':'none';
   document.getElementById('config-json').style.display=fmt==='json'?'block':'none';
+}
+
+// Binding detail toggle
+const bindingIds=['kv','d1','r2','do','queues','secrets','ae','ai','cache'];
+function toggleBinding(id){
+  const panel=document.getElementById('bd-'+id);
+  const isOpen=panel.classList.contains('open');
+  // close all
+  bindingIds.forEach(bid=>{
+    document.getElementById('bd-'+bid).classList.remove('open');
+  });
+  document.querySelectorAll('.binding-chip').forEach(c=>c.classList.remove('active'));
+  // open clicked (if wasn't already open)
+  if(!isOpen){
+    panel.classList.add('open');
+    const chips=document.querySelectorAll('.binding-chip');
+    const idx=bindingIds.indexOf(id);
+    if(idx>=0&&chips[idx])chips[idx].classList.add('active');
+    setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
 }
 
 // Scroll fade-in
