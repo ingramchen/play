@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloudflare Wrangler Architecture Guide</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1a1a2e;--bg2:#16213e;--bg3:#0f3460;--card:#1e2a4a;
+  --text:#e8e8e8;--text2:#a0a8c0;--accent:#F6821F;--accent2:#f59e4c;
+  --green:#34d399;--blue:#60a5fa;--purple:#a78bfa;--red:#f87171;--cyan:#22d3ee;
+  --mono:'SF Mono','Fira Code','Cascadia Code',Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+
+/* Header */
+header{text-align:center;padding:40px 20px 30px;position:relative}
+header::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:80%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.logo{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px}
+.logo svg{width:40px;height:40px}
+h1{font-size:2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:var(--text2);font-size:0.95rem;margin-top:4px}
+
+/* Sections */
+section{margin:32px 0}
+.section-title{font-size:1.2rem;font-weight:600;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-title span{font-size:1.3rem}
+
+/* Architecture Diagram */
+.arch-diagram{display:flex;align-items:center;justify-content:center;gap:0;padding:28px 16px;background:var(--card);border-radius:12px;border:1px solid rgba(246,130,31,0.15);overflow-x:auto;flex-wrap:nowrap}
+.arch-node{background:var(--bg2);border:2px solid var(--bg3);border-radius:10px;padding:14px 18px;text-align:center;min-width:130px;transition:all .3s;cursor:default;flex-shrink:0}
+.arch-node:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(246,130,31,0.15)}
+.arch-node .icon{font-size:1.6rem;margin-bottom:4px}
+.arch-node .label{font-size:0.8rem;font-weight:600;color:var(--text)}
+.arch-node .desc{font-size:0.7rem;color:var(--text2);margin-top:2px}
+.arch-arrow{color:var(--accent);font-size:1.4rem;padding:0 6px;flex-shrink:0;font-weight:bold}
+.arch-node.highlight{border-color:var(--accent);background:rgba(246,130,31,0.08)}
+
+.bindings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:16px}
+.binding-chip{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:8px 12px;text-align:center;font-size:0.78rem;transition:all .2s;cursor:default}
+.binding-chip:hover{border-color:var(--accent);background:rgba(246,130,31,0.06)}
+.binding-chip .b-icon{font-size:1.1rem;display:block;margin-bottom:2px}
+.binding-chip .b-name{font-weight:600;color:var(--text)}
+.binding-chip .b-desc{color:var(--text2);font-size:0.7rem}
+
+/* Project Structure */
+.tree{background:var(--card);border-radius:12px;padding:20px 24px;font-family:var(--mono);font-size:0.82rem;border:1px solid rgba(246,130,31,0.15)}
+.tree-row{display:flex;align-items:baseline;line-height:2;white-space:nowrap}
+.tree-row:hover{background:rgba(246,130,31,0.04);border-radius:4px}
+.tree-indent{color:#4a5568;user-select:none;flex-shrink:0}
+.tree-name{flex-shrink:0}
+.tree-name.dir{color:var(--blue);font-weight:600}
+.tree-name.file{color:var(--text2)}
+.tree-name.important{color:var(--accent);font-weight:600}
+.tree-desc{color:#6a7490;font-style:italic;margin-left:12px;font-size:0.75rem;overflow:hidden;text-overflow:ellipsis}
+
+/* Env Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:0}
+.tab{padding:10px 20px;background:var(--bg2);border:1px solid var(--bg3);border-bottom:none;border-radius:10px 10px 0 0;cursor:pointer;font-size:0.85rem;font-weight:500;color:var(--text2);transition:all .2s;font-family:var(--sans)}
+.tab.active{background:var(--card);color:var(--accent);border-color:rgba(246,130,31,0.3)}
+.tab:hover:not(.active){color:var(--text)}
+.tab-content{background:var(--card);border:1px solid rgba(246,130,31,0.15);border-radius:0 12px 12px 12px;padding:24px;display:none}
+.tab-content.active{display:block}
+
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:700px){.env-grid{grid-template-columns:1fr}}
+.env-box{background:var(--bg2);border-radius:8px;padding:16px}
+.env-box h4{font-size:0.85rem;color:var(--accent2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.env-box ul{list-style:none;font-size:0.8rem}
+.env-box li{padding:3px 0;color:var(--text2)}
+.env-box li::before{content:'>';color:var(--accent);margin-right:8px;font-family:var(--mono)}
+.env-cmd{background:var(--bg);border-radius:6px;padding:12px 16px;font-family:var(--mono);font-size:0.82rem;color:var(--green);margin-top:12px;position:relative;border:1px solid var(--bg3)}
+.env-cmd .prompt{color:var(--text2)}
+
+/* Config Block */
+.config-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.format-toggle{display:flex;gap:4px}
+.fmt-btn{padding:5px 14px;background:var(--bg2);border:1px solid var(--bg3);border-radius:6px;cursor:pointer;font-size:0.78rem;color:var(--text2);transition:all .2s;font-family:var(--mono)}
+.fmt-btn.active{background:rgba(246,130,31,0.15);color:var(--accent);border-color:var(--accent)}
+.config-block{background:#0d1117;border-radius:10px;padding:20px;font-family:var(--mono);font-size:0.78rem;line-height:1.7;overflow-x:auto;border:1px solid #21262d;position:relative;white-space:pre;tab-size:2}
+.config-block .cm{color:#6a737d}
+.config-block .key{color:var(--blue)}
+.config-block .str{color:var(--green)}
+.config-block .sec{color:var(--purple)}
+.config-block .val{color:var(--accent2)}
+.config-block .inherited{background:rgba(96,165,250,0.06);display:inline;border-radius:2px}
+.config-block .per-env{background:rgba(246,130,31,0.06);display:inline;border-radius:2px}
+.legend{display:flex;gap:16px;margin-top:10px;font-size:0.75rem}
+.legend-item{display:flex;align-items:center;gap:6px}
+.legend-dot{width:10px;height:10px;border-radius:3px}
+.legend-dot.inherited{background:rgba(96,165,250,0.25)}
+.legend-dot.per-env{background:rgba(246,130,31,0.25)}
+
+/* CLI Commands */
+.cli-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}
+.cli-card{background:var(--card);border:1px solid rgba(246,130,31,0.1);border-radius:8px;padding:14px 16px;transition:all .2s}
+.cli-card:hover{border-color:rgba(246,130,31,0.3)}
+.cli-cmd{font-family:var(--mono);font-size:0.82rem;color:var(--green);margin-bottom:4px}
+.cli-cmd .flag{color:var(--purple)}
+.cli-desc{font-size:0.78rem;color:var(--text2)}
+
+/* Deploy Flow */
+.flow{display:flex;align-items:center;justify-content:center;gap:0;padding:20px;flex-wrap:wrap}
+.flow-step{background:var(--card);border:2px solid var(--bg3);border-radius:10px;padding:12px 16px;text-align:center;min-width:120px;transition:all .3s;position:relative}
+.flow-step:hover{border-color:var(--accent);transform:scale(1.03)}
+.flow-step .step-num{position:absolute;top:-10px;left:-10px;background:var(--accent);color:#fff;width:22px;height:22px;border-radius:50%;font-size:0.7rem;display:flex;align-items:center;justify-content:center;font-weight:700}
+.flow-step .step-icon{font-size:1.3rem;margin-bottom:4px}
+.flow-step .step-label{font-size:0.78rem;font-weight:600}
+.flow-step .step-cmd{font-family:var(--mono);font-size:0.68rem;color:var(--text2);margin-top:3px}
+.flow-arrow{font-size:1.2rem;color:var(--accent);padding:0 8px;font-weight:bold}
+
+/* Footer */
+footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;border-top:1px solid rgba(246,130,31,0.1);margin-top:40px}
+
+/* Scroll animations */
+.fade-in{opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:600px){
+  h1{font-size:1.5rem}
+  .arch-diagram{flex-direction:column;gap:4px}
+  .arch-arrow{transform:rotate(90deg)}
+  .flow{flex-direction:column}
+  .flow-arrow{transform:rotate(90deg)}
+  .cli-grid{grid-template-columns:1fr}
+  .container{padding:12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 128 128" fill="none"><circle cx="64" cy="64" r="60" fill="#F6821F" opacity="0.15"/><path d="M90 58c0-1.7-.2-3.3-.5-4.9C86.3 39.7 74 30 59.5 30 43.2 30 30 43.2 30 59.5c0 1 .1 2 .2 3H28c-2.2 0-4 1.8-4 4s1.8 4 4 4h72c2.2 0 4-1.8 4-4 0-1.8-1.2-3.3-2.8-3.8-.1-1.6-.2-3.1-.2-4.7z" fill="#F6821F"/><path d="M78 66.5H38l1.5-7c1.8-8.2 9.1-14 17.5-14h4c8.4 0 15.6 5.8 17.5 14l1.5 7h-2z" fill="#FBAD41"/></svg>
+    <div>
+      <h1>Cloudflare Wrangler</h1>
+      <div class="subtitle">Architecture &amp; Environment Guide</div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- Architecture -->
+<section class="fade-in">
+  <div class="section-title"><span>&#9889;</span> Architecture Overview</div>
+  <div class="arch-diagram">
+    <div class="arch-node">
+      <div class="icon">&#128187;</div>
+      <div class="label">Your Code</div>
+      <div class="desc">src/index.ts</div>
+    </div>
+    <div class="arch-arrow">&#10132;</div>
+    <div class="arch-node highlight">
+      <div class="icon">&#9881;</div>
+      <div class="label">Wrangler CLI</div>
+      <div class="desc">Build &amp; Deploy</div>
+    </div>
+    <div class="arch-arrow">&#10132;</div>
+    <div class="arch-node">
+      <div class="icon">&#9729;</div>
+      <div class="label">Cloudflare Edge</div>
+      <div class="desc">300+ locations</div>
+    </div>
+    <div class="arch-arrow">&#10132;</div>
+    <div class="arch-node">
+      <div class="icon">&#127760;</div>
+      <div class="label">Users</div>
+      <div class="desc">&lt;50ms latency</div>
+    </div>
+  </div>
+
+  <div class="bindings-grid" style="margin-top:20px">
+    <div class="binding-chip"><span class="b-icon">&#128451;</span><div class="b-name">KV</div><div class="b-desc">Key-Value Store</div></div>
+    <div class="binding-chip"><span class="b-icon">&#128450;</span><div class="b-name">D1</div><div class="b-desc">SQLite Database</div></div>
+    <div class="binding-chip"><span class="b-icon">&#128230;</span><div class="b-name">R2</div><div class="b-desc">Object Storage</div></div>
+    <div class="binding-chip"><span class="b-icon">&#129520;</span><div class="b-name">Durable Objects</div><div class="b-desc">Stateful Actors</div></div>
+    <div class="binding-chip"><span class="b-icon">&#128236;</span><div class="b-name">Queues</div><div class="b-desc">Message Queue</div></div>
+    <div class="binding-chip"><span class="b-icon">&#128274;</span><div class="b-name">Secrets</div><div class="b-desc">Encrypted Env</div></div>
+    <div class="binding-chip"><span class="b-icon">&#128202;</span><div class="b-name">Analytics Engine</div><div class="b-desc">Event Logging</div></div>
+    <div class="binding-chip"><span class="b-icon">&#129302;</span><div class="b-name">Workers AI</div><div class="b-desc">ML Inference</div></div>
+    <div class="binding-chip" style="border-color:var(--cyan);background:rgba(34,211,238,0.06)"><span class="b-icon">&#9889;</span><div class="b-name">Cache API</div><div class="b-desc">Built-in (no binding)</div></div>
+  </div>
+
+  <!-- Cache vs KV -->
+  <div style="margin-top:20px;background:var(--card);border-radius:12px;padding:20px 24px;border:1px solid rgba(34,211,238,0.2)">
+    <div style="font-weight:600;color:var(--cyan);margin-bottom:12px;font-size:0.95rem">⚡ Cache API vs KV — What's the difference?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--bg3)">
+        <div style="font-weight:600;color:var(--cyan);margin-bottom:8px;font-size:0.85rem">Cache API (built-in)</div>
+        <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:1.9">
+          <li>• No binding needed — <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">caches.default</code></li>
+          <li>• Stores HTTP <b style="color:var(--text)">Response</b> objects</li>
+          <li>• Expires via <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">Cache-Control</code> header</li>
+          <li>• <b style="color:var(--red)">May be evicted</b> anytime</li>
+          <li>• Per-colo (not globally consistent)</li>
+        </ul>
+        <div style="margin-top:10px;background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.7;color:var(--text2)">
+          <span style="color:var(--purple)">const</span> cache = caches.<span style="color:var(--accent2)">default</span>;<br>
+          <span style="color:var(--purple)">let</span> res = <span style="color:var(--purple)">await</span> cache.<span style="color:var(--blue)">match</span>(req);<br>
+          <span style="color:var(--purple)">if</span> (!res) {<br>
+          &nbsp;&nbsp;res = <span style="color:var(--purple)">await</span> <span style="color:var(--blue)">fetch</span>(origin);<br>
+          &nbsp;&nbsp;ctx.<span style="color:var(--blue)">waitUntil</span>(cache.<span style="color:var(--blue)">put</span>(req, res.<span style="color:var(--blue)">clone</span>()));<br>
+          }
+        </div>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--bg3)">
+        <div style="font-weight:600;color:var(--accent);margin-bottom:8px;font-size:0.85rem">KV (binding required)</div>
+        <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:1.9">
+          <li>• Declare in <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">wrangler.toml</code> → <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">env.APP_KV</code></li>
+          <li>• Stores <b style="color:var(--text)">string / ArrayBuffer / stream</b></li>
+          <li>• Optional TTL via <code style="color:var(--text);font-family:var(--mono);font-size:0.75rem">expirationTtl</code></li>
+          <li>• <b style="color:var(--green)">Persistent</b> — never auto-evicted</li>
+          <li>• Globally consistent (eventual)</li>
+        </ul>
+        <div style="margin-top:10px;background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.7;color:var(--text2)">
+          <span style="color:var(--purple)">const</span> val = <span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">get</span>(<span style="color:var(--green)">"key"</span>);<br>
+          <span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">put</span>(<span style="color:var(--green)">"key"</span>, <span style="color:var(--green)">"val"</span>);<br>
+          <span style="color:var(--text2)">// with TTL:</span><br>
+          <span style="color:var(--purple)">await</span> env.APP_KV.<span style="color:var(--blue)">put</span>(<span style="color:var(--green)">"k"</span>, <span style="color:var(--green)">"v"</span>, {<br>
+          &nbsp;&nbsp;<span style="color:var(--accent2)">expirationTtl</span>: <span style="color:var(--cyan)">3600</span><br>
+          });
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gotchas -->
+  <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <!-- KV Gotchas -->
+    <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid rgba(248,113,113,0.25)">
+      <div style="font-weight:600;color:var(--red);margin-bottom:12px;font-size:0.9rem">⚠️ KV Gotchas</div>
+      <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:2">
+        <li>• <b style="color:var(--red)">Eventually consistent</b> — 寫入後最多 <b style="color:var(--text)">60 秒</b>才全球生效</li>
+        <li>• 適合<b style="color:var(--green)">讀多寫少</b>，不適合頻繁寫入</li>
+        <li>• 沒有 filter/query，只能 <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">list({ prefix })</code></li>
+        <li>• 單個 value 上限 25MB</li>
+        <li>• Free: 1,000 writes/day, 100,000 reads/day</li>
+      </ul>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bg3);font-size:0.72rem;color:#6a7490">
+        ✅ 適合：設定檔、feature flags、靜態資產 metadata<br>
+        ❌ 不適合：session store、計數器、即時狀態
+      </div>
+    </div>
+    <!-- D1 Gotchas -->
+    <div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid rgba(248,113,113,0.25)">
+      <div style="font-weight:600;color:var(--red);margin-bottom:12px;font-size:0.9rem">⚠️ D1 Limits</div>
+      <ul style="font-size:0.78rem;color:var(--text2);list-style:none;line-height:2">
+        <li>• DB 上限 <b style="color:var(--text)">10GB</b>（Free 500MB）</li>
+        <li>• 底層 SQLite — <b style="color:var(--red)">single writer</b>，寫入不能並行</li>
+        <li>• 單次 query 讀取上限 20MB，回傳上限 100MB</li>
+        <li>• 不適合 high-write / OLAP 場景</li>
+        <li>• Free: 100,000 rows read/day, 5M rows read/month</li>
+      </ul>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bg3);font-size:0.72rem;color:#6a7490">
+        ✅ 適合：CRUD app、blog、小型 SaaS<br>
+        ❌ 爆了就換：Turso, Neon, Supabase, PlanetScale
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Project Structure -->
+<section class="fade-in">
+  <div class="section-title"><span>&#128193;</span> Project Structure</div>
+  <div class="tree">
+    <div class="tree-row"><span class="tree-indent"></span><span class="tree-name dir">📁 my-worker/</span></div>
+    <div class="tree-row"><span class="tree-indent">├── </span><span class="tree-name important">wrangler.toml</span><span class="tree-desc">main config (or wrangler.jsonc)</span></div>
+    <div class="tree-row"><span class="tree-indent">├── </span><span class="tree-name important">package.json</span><span class="tree-desc">dependencies + scripts</span></div>
+    <div class="tree-row"><span class="tree-indent">├── </span><span class="tree-name file">tsconfig.json</span><span class="tree-desc">TypeScript config</span></div>
+    <div class="tree-row"><span class="tree-indent">├── </span><span class="tree-name file">.dev.vars</span><span class="tree-desc">local secrets (⚠️ gitignored)</span></div>
+    <div class="tree-row"><span class="tree-indent">├── </span><span class="tree-name file">.gitignore</span><span class="tree-desc">node_modules, .wrangler, .dev.vars</span></div>
+    <div class="tree-row"><span class="tree-indent">├── </span><span class="tree-name dir">src/</span></div>
+    <div class="tree-row"><span class="tree-indent">│   ├── </span><span class="tree-name important">index.ts</span><span class="tree-desc">entry point (fetch handler)</span></div>
+    <div class="tree-row"><span class="tree-indent">│   ├── </span><span class="tree-name file">types.ts</span><span class="tree-desc">generated by wrangler types</span></div>
+    <div class="tree-row"><span class="tree-indent">│   └── </span><span class="tree-name file">utils.ts</span><span class="tree-desc">helpers</span></div>
+    <div class="tree-row"><span class="tree-indent">├── </span><span class="tree-name dir">test/</span></div>
+    <div class="tree-row"><span class="tree-indent">│   └── </span><span class="tree-name file">index.test.ts</span><span class="tree-desc">vitest tests</span></div>
+    <div class="tree-row"><span class="tree-indent">└── </span><span class="tree-name dir">migrations/</span><span class="tree-desc">D1 schema migrations</span></div>
+    <div class="tree-row"><span class="tree-indent">    └── </span><span class="tree-name file">0001_init.sql</span></div>
+  </div>
+</section>
+
+<!-- Environment Tabs -->
+<section class="fade-in">
+  <div class="section-title"><span>&#127919;</span> Environments</div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(0)">&#9899; Local</div>
+    <div class="tab" onclick="switchTab(1)">&#128993; Staging</div>
+    <div class="tab" onclick="switchTab(2)">&#128994; Production</div>
+  </div>
+
+  <!-- Local -->
+  <div class="tab-content active" id="tab-0">
+    <div class="env-grid">
+      <div class="env-box">
+        <h4>&#9881; Configuration</h4>
+        <ul>
+          <li>Runs on <b style="color:var(--cyan)">localhost:8787</b></li>
+          <li>Hot reload on file changes</li>
+          <li>Local D1/KV/R2 simulation (SQLite)</li>
+          <li>Data stored in <code style="color:var(--text)">.wrangler/state/</code></li>
+          <li>Secrets from <code style="color:var(--text)">.dev.vars</code> file</li>
+        </ul>
+      </div>
+      <div class="env-box">
+        <h4>&#128161; Key Points</h4>
+        <ul>
+          <li>No Cloudflare account needed</li>
+          <li>Uses <code style="color:var(--text)">workerd</code> runtime (same as prod)</li>
+          <li><code style="color:var(--text)">--remote</code> flag to use real CF resources</li>
+          <li><code style="color:var(--text)">--test-scheduled</code> for Cron testing</li>
+          <li>Vitest with <code style="color:var(--text)">@cloudflare/vitest-pool-workers</code></li>
+        </ul>
+      </div>
+    </div>
+    <div class="env-cmd"><span class="prompt">$</span> npx wrangler dev --port 8787</div>
+    <div class="env-cmd" style="margin-top:6px"><span class="prompt"># .dev.vars</span><br>API_KEY=dev-secret-key<br>DATABASE_URL=local-db</div>
+  </div>
+
+  <!-- Staging -->
+  <div class="tab-content" id="tab-1">
+    <div class="env-grid">
+      <div class="env-box">
+        <h4>&#9881; Configuration</h4>
+        <ul>
+          <li>Deploys as <b style="color:var(--accent2)">my-worker-staging</b></li>
+          <li>Route: <code style="color:var(--text)">staging.example.com/*</code></li>
+          <li>Separate KV/D1 namespace IDs</li>
+          <li>Real Cloudflare infrastructure</li>
+          <li>Per-env vars in wrangler.toml</li>
+        </ul>
+      </div>
+      <div class="env-box">
+        <h4>&#128161; Key Points</h4>
+        <ul>
+          <li>Uses <code style="color:var(--text)">[env.staging]</code> in config</li>
+          <li>Env-specific bindings are <b>non-inheritable</b></li>
+          <li>Must redeclare KV/D1 bindings per env</li>
+          <li>Secrets set per env with <code style="color:var(--text)">--env</code></li>
+          <li>Test with real network conditions</li>
+        </ul>
+      </div>
+    </div>
+    <div class="env-cmd"><span class="prompt">$</span> npx wrangler deploy --env staging</div>
+    <div class="env-cmd" style="margin-top:6px"><span class="prompt">$</span> npx wrangler secret put API_KEY --env staging</div>
+  </div>
+
+  <!-- Production -->
+  <div class="tab-content" id="tab-2">
+    <div class="env-grid">
+      <div class="env-box">
+        <h4>&#9881; Configuration</h4>
+        <ul>
+          <li>Deploys as <b style="color:var(--green)">my-worker-production</b></li>
+          <li>Routes: <code style="color:var(--text)">example.com/*</code></li>
+          <li>Production KV/D1 namespace IDs</li>
+          <li>Custom domains supported</li>
+          <li>Full observability (tail, analytics)</li>
+        </ul>
+      </div>
+      <div class="env-box">
+        <h4>&#128161; Key Points</h4>
+        <ul>
+          <li>Uses <code style="color:var(--text)">[env.production]</code> in config</li>
+          <li>Multiple routes supported per env</li>
+          <li>Secrets managed separately from staging</li>
+          <li>Zero-downtime deployments</li>
+          <li>Instant global rollback via dashboard</li>
+        </ul>
+      </div>
+    </div>
+    <div class="env-cmd"><span class="prompt">$</span> npx wrangler deploy --env production</div>
+    <div class="env-cmd" style="margin-top:6px"><span class="prompt">$</span> npx wrangler tail --env production</div>
+  </div>
+</section>
+
+<!-- Config Example -->
+<section class="fade-in">
+  <div class="section-title"><span>&#128221;</span> Configuration</div>
+  <div class="config-header">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot inherited"></div> Shared (top-level)</div>
+      <div class="legend-item"><div class="legend-dot per-env"></div> Per-environment</div>
+    </div>
+    <div class="format-toggle">
+      <button class="fmt-btn active" onclick="switchFmt('toml')">TOML</button>
+      <button class="fmt-btn" onclick="switchFmt('json')">JSON</button>
+    </div>
+  </div>
+
+  <div class="config-block" id="config-toml"><span class="inherited"><span class="key">name</span> = <span class="str">"my-api"</span>
+<span class="key">main</span> = <span class="str">"src/index.ts"</span>
+<span class="key">compatibility_date</span> = <span class="str">"2026-03-25"</span>
+<span class="key">compatibility_flags</span> = [<span class="str">"nodejs_compat"</span>]
+<span class="cm"># account_id = "abc123"  ← optional, or use CLOUDFLARE_ACCOUNT_ID env var</span></span>
+
+<span class="cm"># Top-level vars (used by `wrangler dev`)</span>
+<span class="inherited"><span class="sec">[vars]</span>
+<span class="key">ENVIRONMENT</span> = <span class="str">"dev"</span>
+<span class="key">API_HOST</span> = <span class="str">"api-dev.example.com"</span></span>
+
+<span class="inherited"><span class="sec">[[kv_namespaces]]</span>
+<span class="key">binding</span> = <span class="str">"APP_KV"</span>
+<span class="key">id</span> = <span class="str">"dev-kv-id-000"</span></span>
+
+<span class="inherited"><span class="sec">[[d1_databases]]</span>
+<span class="key">binding</span> = <span class="str">"DB"</span>
+<span class="key">database_name</span> = <span class="str">"my-db-dev"</span>
+<span class="key">database_id</span> = <span class="str">"dev-d1-uuid"</span></span>
+
+<span class="cm"># ── Staging ──────────────────────────────</span>
+<span class="per-env"><span class="sec">[env.staging]</span>
+<span class="key">route</span> = <span class="str">"staging.example.com/*"</span>
+
+  <span class="sec">[env.staging.vars]</span>
+  <span class="key">ENVIRONMENT</span> = <span class="str">"staging"</span>
+  <span class="key">API_HOST</span> = <span class="str">"api-staging.example.com"</span>
+
+<span class="sec">[[env.staging.kv_namespaces]]</span>
+<span class="key">binding</span> = <span class="str">"APP_KV"</span>
+<span class="key">id</span> = <span class="str">"staging-kv-id-111"</span>
+
+<span class="sec">[[env.staging.d1_databases]]</span>
+<span class="key">binding</span> = <span class="str">"DB"</span>
+<span class="key">database_name</span> = <span class="str">"my-db-staging"</span>
+<span class="key">database_id</span> = <span class="str">"staging-d1-uuid"</span></span>
+
+<span class="cm"># ── Production ───────────────────────────</span>
+<span class="per-env"><span class="sec">[env.production]</span>
+<span class="key">routes</span> = [<span class="str">"example.com/api/*"</span>, <span class="str">"example.com/v2/*"</span>]
+
+  <span class="sec">[env.production.vars]</span>
+  <span class="key">ENVIRONMENT</span> = <span class="str">"production"</span>
+  <span class="key">API_HOST</span> = <span class="str">"api.example.com"</span>
+
+<span class="sec">[[env.production.kv_namespaces]]</span>
+<span class="key">binding</span> = <span class="str">"APP_KV"</span>
+<span class="key">id</span> = <span class="str">"prod-kv-id-222"</span>
+
+<span class="sec">[[env.production.d1_databases]]</span>
+<span class="key">binding</span> = <span class="str">"DB"</span>
+<span class="key">database_name</span> = <span class="str">"my-db-prod"</span>
+<span class="key">database_id</span> = <span class="str">"prod-d1-uuid"</span></span></div>
+
+  <div class="config-block" id="config-json" style="display:none">{
+  <span class="cm">// Shared config (used by `wrangler dev`)</span>
+  <span class="inherited"><span class="key">"name"</span>: <span class="str">"my-api"</span>,
+  <span class="key">"main"</span>: <span class="str">"src/index.ts"</span>,
+  <span class="key">"compatibility_date"</span>: <span class="str">"2026-03-25"</span>,
+  <span class="key">"compatibility_flags"</span>: [<span class="str">"nodejs_compat"</span>],
+  <span class="cm">// "account_id": "abc123",  ← optional, or use CLOUDFLARE_ACCOUNT_ID env</span>
+  <span class="key">"vars"</span>: {
+    <span class="key">"ENVIRONMENT"</span>: <span class="str">"dev"</span>,
+    <span class="key">"API_HOST"</span>: <span class="str">"api-dev.example.com"</span>
+  },
+  <span class="key">"kv_namespaces"</span>: [
+    { <span class="key">"binding"</span>: <span class="str">"APP_KV"</span>, <span class="key">"id"</span>: <span class="str">"dev-kv-id-000"</span> }
+  ],
+  <span class="key">"d1_databases"</span>: [
+    { <span class="key">"binding"</span>: <span class="str">"DB"</span>, <span class="key">"database_name"</span>: <span class="str">"my-db-dev"</span>, <span class="key">"database_id"</span>: <span class="str">"dev-d1-uuid"</span> }
+  ],</span>
+
+  <span class="per-env"><span class="key">"env"</span>: {
+    <span class="cm">// ── Staging ──────────────────────────</span>
+    <span class="key">"staging"</span>: {
+      <span class="key">"route"</span>: <span class="str">"staging.example.com/*"</span>,
+      <span class="key">"vars"</span>: { <span class="key">"ENVIRONMENT"</span>: <span class="str">"staging"</span>, <span class="key">"API_HOST"</span>: <span class="str">"api-staging.example.com"</span> },
+      <span class="key">"kv_namespaces"</span>: [{ <span class="key">"binding"</span>: <span class="str">"APP_KV"</span>, <span class="key">"id"</span>: <span class="str">"staging-kv-id-111"</span> }],
+      <span class="key">"d1_databases"</span>: [{ <span class="key">"binding"</span>: <span class="str">"DB"</span>, <span class="key">"database_name"</span>: <span class="str">"my-db-staging"</span>, <span class="key">"database_id"</span>: <span class="str">"staging-d1-uuid"</span> }]
+    },
+    <span class="cm">// ── Production ───────────────────────</span>
+    <span class="key">"production"</span>: {
+      <span class="key">"routes"</span>: [<span class="str">"example.com/api/*"</span>, <span class="str">"example.com/v2/*"</span>],
+      <span class="key">"vars"</span>: { <span class="key">"ENVIRONMENT"</span>: <span class="str">"production"</span>, <span class="key">"API_HOST"</span>: <span class="str">"api.example.com"</span> },
+      <span class="key">"kv_namespaces"</span>: [{ <span class="key">"binding"</span>: <span class="str">"APP_KV"</span>, <span class="key">"id"</span>: <span class="str">"prod-kv-id-222"</span> }],
+      <span class="key">"d1_databases"</span>: [{ <span class="key">"binding"</span>: <span class="str">"DB"</span>, <span class="key">"database_name"</span>: <span class="str">"my-db-prod"</span>, <span class="key">"database_id"</span>: <span class="str">"prod-d1-uuid"</span> }]
+    }
+  }</span>
+}</div>
+</section>
+
+<!-- CLI Commands -->
+<section class="fade-in">
+  <div class="section-title"><span>&#128313;</span> CLI Commands</div>
+  <div class="cli-grid">
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler dev <span class="flag">--port 8787</span></div>
+      <div class="cli-desc">Start local development server with hot reload</div>
+    </div>
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler deploy <span class="flag">--env production</span></div>
+      <div class="cli-desc">Deploy Worker to specified environment</div>
+    </div>
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler secret put <span class="flag">API_KEY --env staging</span></div>
+      <div class="cli-desc">Set encrypted secret for an environment</div>
+    </div>
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler d1 execute <span class="flag">my-db --file schema.sql</span></div>
+      <div class="cli-desc">Run SQL against D1 database</div>
+    </div>
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler kv key put <span class="flag">--binding APP_KV key val</span></div>
+      <div class="cli-desc">Write key-value pair to KV namespace</div>
+    </div>
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler tail <span class="flag">--env production</span></div>
+      <div class="cli-desc">Stream real-time logs from deployed Worker</div>
+    </div>
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler types</div>
+      <div class="cli-desc">Generate TypeScript types from bindings config</div>
+    </div>
+    <div class="cli-card">
+      <div class="cli-cmd">wrangler d1 migrations apply <span class="flag">my-db</span></div>
+      <div class="cli-desc">Apply pending D1 schema migrations</div>
+    </div>
+  </div>
+</section>
+
+<!-- Auth & Team -->
+<section class="fade-in">
+  <div class="section-title"><span>&#128272;</span> Authentication &amp; Team</div>
+
+  <!-- Account hierarchy -->
+  <div style="background:var(--card);border-radius:12px;padding:20px 24px;border:1px solid rgba(246,130,31,0.15);margin-bottom:16px">
+    <div style="font-weight:600;color:var(--accent);margin-bottom:14px;font-size:0.9rem">Account Hierarchy</div>
+    <div style="font-family:var(--mono);font-size:0.8rem;line-height:2;color:var(--text2)">
+      <div><span style="color:var(--blue);font-weight:600">Account</span> <span style="color:#6a7490">← company / team (account_id in wrangler.toml)</span></div>
+      <div style="color:#4a5568">├── </span><span style="color:var(--green)">Members</span> <span style="color:#6a7490">← people (each with own login)</span></div>
+      <div style="color:#4a5568">│   ├── </span><span style="color:var(--text)">alice@co.com</span> <span style="color:var(--accent2)">(Super Admin)</span></div>
+      <div style="color:#4a5568">│   ├── </span><span style="color:var(--text)">bob@co.com</span> <span style="color:var(--purple)">(Admin)</span></div>
+      <div style="color:#4a5568">│   └── </span><span style="color:var(--text)">charlie@co.com</span> <span style="color:var(--cyan)">(Developer)</span></div>
+      <div style="color:#4a5568">├── </span><span style="color:var(--text)">Workers, KV, D1, R2, Queues ...</span></div>
+      <div style="color:#4a5568">└── </span><span style="color:var(--text)">Zones</span> <span style="color:#6a7490">(domains)</span></div>
+    </div>
+    <div style="margin-top:12px;font-size:0.75rem;color:#6a7490;border-top:1px solid var(--bg3);padding-top:10px">
+      ⓘ One person can own multiple Accounts (personal + work). All resources belong to the Account, not to individual members.
+    </div>
+  </div>
+
+  <!-- Auth methods -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div style="background:var(--card);border-radius:10px;padding:16px;border:1px solid rgba(52,211,153,0.2)">
+      <div style="font-weight:600;color:var(--green);font-size:0.82rem;margin-bottom:8px">🖥️ Local Dev</div>
+      <div style="background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.8;color:var(--text2);margin-bottom:8px">
+        <span style="color:var(--accent2)">$</span> wrangler login<br>
+        <span style="color:#6a7490"># opens browser → OAuth</span><br>
+        <span style="color:#6a7490"># token saved to</span><br>
+        <span style="color:#6a7490"># ~/.wrangler/config/</span>
+      </div>
+      <div style="font-size:0.72rem;color:#6a7490">Run once, auto-refreshes. Each team member uses their own login.</div>
+    </div>
+    <div style="background:var(--card);border-radius:10px;padding:16px;border:1px solid rgba(246,130,31,0.2)">
+      <div style="font-weight:600;color:var(--accent);font-size:0.82rem;margin-bottom:8px">⚙️ CI/CD</div>
+      <div style="background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.8;color:var(--text2);margin-bottom:8px">
+        <span style="color:var(--purple)">env</span>:<br>
+        &nbsp;&nbsp;<span style="color:var(--accent2)">CLOUDFLARE_API_TOKEN</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;${{ secrets.CF_TOKEN }}<br>
+        &nbsp;&nbsp;<span style="color:var(--accent2)">CLOUDFLARE_ACCOUNT_ID</span>:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;${{ secrets.CF_ACCT }}
+      </div>
+      <div style="font-size:0.72rem;color:#6a7490">Shared deploy token with scoped permissions. Set in GitHub Actions secrets.</div>
+    </div>
+    <div style="background:var(--card);border-radius:10px;padding:16px;border:1px solid rgba(246,130,31,0.1)">
+      <div style="font-weight:600;color:var(--text2);font-size:0.82rem;margin-bottom:8px">🔑 API Token</div>
+      <div style="background:var(--bg);border-radius:6px;padding:10px;font-family:var(--mono);font-size:0.72rem;line-height:1.8;color:var(--text2);margin-bottom:8px">
+        <span style="color:#6a7490"># Dashboard →</span><br>
+        <span style="color:#6a7490"># My Profile →</span><br>
+        <span style="color:#6a7490"># API Tokens →</span><br>
+        <span style="color:#6a7490"># Create Token</span>
+      </div>
+      <div style="font-size:0.72rem;color:#6a7490">Scope to specific permissions: Workers Scripts Edit, Account Read, etc.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Deploy Flow -->
+<section class="fade-in">
+  <div class="section-title"><span>&#128640;</span> Deployment Pipeline</div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-icon">&#128187;</div>
+      <div class="step-label">Git Push</div>
+      <div class="step-cmd">git push origin main</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-icon">&#9881;</div>
+      <div class="step-label">CI/CD</div>
+      <div class="step-cmd">GitHub Actions</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step" style="border-color:var(--accent2)">
+      <div class="step-num">3</div>
+      <div class="step-icon">&#128993;</div>
+      <div class="step-label">Staging</div>
+      <div class="step-cmd">deploy --env staging</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-icon">&#9989;</div>
+      <div class="step-label">Test</div>
+      <div class="step-cmd">smoke tests + QA</div>
+    </div>
+    <div class="flow-arrow">&#10132;</div>
+    <div class="flow-step" style="border-color:var(--green)">
+      <div class="step-num">5</div>
+      <div class="step-icon">&#128994;</div>
+      <div class="step-label">Production</div>
+      <div class="step-cmd">deploy --env production</div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  Cloudflare Wrangler Architecture Guide &mdash; Built for reference
+</footer>
+
+<script>
+function switchTab(idx){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab-content').forEach((c,i)=>c.classList.toggle('active',i===idx));
+}
+
+function switchFmt(fmt){
+  document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===fmt));
+  document.getElementById('config-toml').style.display=fmt==='toml'?'block':'none';
+  document.getElementById('config-json').style.display=fmt==='json'?'block':'none';
+}
+
+// Scroll fade-in
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')});
+},{threshold:0.1});
+document.querySelectorAll('.fade-in').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>
