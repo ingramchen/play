@@ -473,21 +473,21 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
       <div class="env-box">
         <h4>&#9881; Configuration</h4>
         <ul>
-          <li>Deploys as <b style="color:var(--accent2)">my-worker-staging</b></li>
-          <li>Route: <code style="color:var(--text)">staging.example.com/*</code></li>
-          <li>Separate KV/D1 namespace IDs</li>
-          <li>Real Cloudflare infrastructure</li>
-          <li>Per-env vars in wrangler.toml</li>
+          <li>Deploys as <b style="color:var(--accent2)">creator-staging</b></li>
+          <li>Route: <code style="color:var(--text)">staging-creator.ing-studio.work/*</code></li>
+          <li>Config lives in <code style="color:var(--text)">wrangler.toml</code></li>
+          <li>Separate KV/D1 namespace IDs from prod</li>
+          <li>Developers deploy directly from local</li>
         </ul>
       </div>
       <div class="env-box">
         <h4>&#128161; Key Points</h4>
         <ul>
           <li>Uses <code style="color:var(--text)">[env.staging]</code> in config</li>
-          <li>Env-specific bindings are <b>non-inheritable</b></li>
-          <li>Must redeclare KV/D1 bindings per env</li>
+          <li>Developer gets <b style="color:var(--accent2)">staging-only API token</b></li>
+          <li><b style="color:var(--text)">No [env.production]</b> in wrangler.toml</li>
+          <li>Devs can only deploy staging by design</li>
           <li>Secrets set per env with <code style="color:var(--text)">--env</code></li>
-          <li>Test with real network conditions</li>
         </ul>
       </div>
     </div>
@@ -501,26 +501,26 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
       <div class="env-box">
         <h4>&#9881; Configuration</h4>
         <ul>
-          <li>Deploys as <b style="color:var(--green)">my-worker-production</b></li>
-          <li>Routes: <code style="color:var(--text)">example.com/*</code></li>
-          <li>Production KV/D1 namespace IDs</li>
-          <li>Custom domains supported</li>
-          <li>Full observability (tail, analytics)</li>
+          <li>Deploys as <b style="color:var(--green)">creator-production</b></li>
+          <li>Route: <code style="color:var(--text)">creator.ing-studio.work/*</code></li>
+          <li>Config <b style="color:var(--red)">NOT in wrangler.toml</b></li>
+          <li>Route passed via CI/CD <code style="color:var(--text)">--route</code> flag</li>
+          <li>Token stored in GitHub Secrets only</li>
         </ul>
       </div>
       <div class="env-box">
         <h4>&#128161; Key Points</h4>
         <ul>
-          <li>Uses <code style="color:var(--text)">[env.production]</code> in config</li>
-          <li>Multiple routes supported per env</li>
-          <li>Secrets managed separately from staging</li>
-          <li>Zero-downtime deployments</li>
-          <li>Instant global rollback via dashboard</li>
+          <li>Deployed <b>only via GitHub Actions</b></li>
+          <li>Merge to main → auto deploy production</li>
+          <li>Developers <b style="color:var(--red)">cannot</b> deploy prod from local</li>
+          <li>Separate API token from staging</li>
+          <li>Zero-downtime, instant rollback via dashboard</li>
         </ul>
       </div>
     </div>
-    <div class="env-cmd"><span class="prompt">$</span> npx wrangler deploy --env production</div>
-    <div class="env-cmd" style="margin-top:6px"><span class="prompt">$</span> npx wrangler tail --env production</div>
+    <div class="env-cmd"><span class="prompt"># GitHub Actions only</span></div>
+    <div class="env-cmd" style="margin-top:6px"><span class="prompt">$</span> npx wrangler deploy --env production --route "creator.ing-studio.work/*"</div>
   </div>
 </section>
 
@@ -558,13 +558,12 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
 <span class="key">database_name</span> = <span class="str">"my-db-dev"</span>
 <span class="key">database_id</span> = <span class="str">"dev-d1-uuid"</span></span>
 
-<span class="cm"># ── Staging ──────────────────────────────</span>
+<span class="cm"># ── Staging (in wrangler.toml) ────────────</span>
 <span class="per-env"><span class="sec">[env.staging]</span>
-<span class="key">route</span> = <span class="str">"staging.example.com/*"</span>
+<span class="key">route</span> = <span class="str">"staging-creator.ing-studio.work/*"</span>
 
   <span class="sec">[env.staging.vars]</span>
   <span class="key">ENVIRONMENT</span> = <span class="str">"staging"</span>
-  <span class="key">API_HOST</span> = <span class="str">"api-staging.example.com"</span>
 
 <span class="sec">[[env.staging.kv_namespaces]]</span>
 <span class="key">binding</span> = <span class="str">"APP_KV"</span>
@@ -575,22 +574,13 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
 <span class="key">database_name</span> = <span class="str">"my-db-staging"</span>
 <span class="key">database_id</span> = <span class="str">"staging-d1-uuid"</span></span>
 
-<span class="cm"># ── Production ───────────────────────────</span>
-<span class="per-env"><span class="sec">[env.production]</span>
-<span class="key">routes</span> = [<span class="str">"example.com/api/*"</span>, <span class="str">"example.com/v2/*"</span>]
-
-  <span class="sec">[env.production.vars]</span>
-  <span class="key">ENVIRONMENT</span> = <span class="str">"production"</span>
-  <span class="key">API_HOST</span> = <span class="str">"api.example.com"</span>
-
-<span class="sec">[[env.production.kv_namespaces]]</span>
-<span class="key">binding</span> = <span class="str">"APP_KV"</span>
-<span class="key">id</span> = <span class="str">"prod-kv-id-222"</span>
-
-<span class="sec">[[env.production.d1_databases]]</span>
-<span class="key">binding</span> = <span class="str">"DB"</span>
-<span class="key">database_name</span> = <span class="str">"my-db-prod"</span>
-<span class="key">database_id</span> = <span class="str">"prod-d1-uuid"</span></span></div>
+<span class="cm"># ── Production (NOT here — CI/CD only) ───</span>
+<span class="cm"># [env.production] is intentionally omitted.</span>
+<span class="cm"># Production config lives in GitHub Actions:</span>
+<span class="cm">#   wrangler deploy --env production \</span>
+<span class="cm">#     --route "creator.ing-studio.work/*"</span>
+<span class="cm"># This prevents developers from deploying</span>
+<span class="cm"># to production from their local machine.</span></div>
 
   <div class="config-block" id="config-json" style="display:none">{
   <span class="cm">// Shared config (used by `wrangler dev`)</span>
@@ -611,20 +601,14 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
   ],</span>
 
   <span class="per-env"><span class="key">"env"</span>: {
-    <span class="cm">// ── Staging ──────────────────────────</span>
+    <span class="cm">// ── Staging (in config) ──────────────</span>
     <span class="key">"staging"</span>: {
-      <span class="key">"route"</span>: <span class="str">"staging.example.com/*"</span>,
-      <span class="key">"vars"</span>: { <span class="key">"ENVIRONMENT"</span>: <span class="str">"staging"</span>, <span class="key">"API_HOST"</span>: <span class="str">"api-staging.example.com"</span> },
+      <span class="key">"route"</span>: <span class="str">"staging-creator.ing-studio.work/*"</span>,
+      <span class="key">"vars"</span>: { <span class="key">"ENVIRONMENT"</span>: <span class="str">"staging"</span> },
       <span class="key">"kv_namespaces"</span>: [{ <span class="key">"binding"</span>: <span class="str">"APP_KV"</span>, <span class="key">"id"</span>: <span class="str">"staging-kv-id-111"</span> }],
       <span class="key">"d1_databases"</span>: [{ <span class="key">"binding"</span>: <span class="str">"DB"</span>, <span class="key">"database_name"</span>: <span class="str">"my-db-staging"</span>, <span class="key">"database_id"</span>: <span class="str">"staging-d1-uuid"</span> }]
-    },
-    <span class="cm">// ── Production ───────────────────────</span>
-    <span class="key">"production"</span>: {
-      <span class="key">"routes"</span>: [<span class="str">"example.com/api/*"</span>, <span class="str">"example.com/v2/*"</span>],
-      <span class="key">"vars"</span>: { <span class="key">"ENVIRONMENT"</span>: <span class="str">"production"</span>, <span class="key">"API_HOST"</span>: <span class="str">"api.example.com"</span> },
-      <span class="key">"kv_namespaces"</span>: [{ <span class="key">"binding"</span>: <span class="str">"APP_KV"</span>, <span class="key">"id"</span>: <span class="str">"prod-kv-id-222"</span> }],
-      <span class="key">"d1_databases"</span>: [{ <span class="key">"binding"</span>: <span class="str">"DB"</span>, <span class="key">"database_name"</span>: <span class="str">"my-db-prod"</span>, <span class="key">"database_id"</span>: <span class="str">"prod-d1-uuid"</span> }]
     }
+    <span class="cm">// production: NOT here — deployed via CI/CD only</span>
   }</span>
 }</div>
 </section>
@@ -721,6 +705,40 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
         <span style="color:#6a7490"># Create Token</span>
       </div>
       <div style="font-size:0.72rem;color:#6a7490">Scope to specific permissions: Workers Scripts Edit, Account Read, etc.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Deploy Token Strategy -->
+<section class="fade-in">
+  <div class="section-title"><span>&#128737;</span> Deploy Token Strategy</div>
+  <div style="background:var(--card);border-radius:12px;padding:20px 24px;border:1px solid rgba(246,130,31,0.15);margin-bottom:16px">
+    <div style="font-weight:600;color:var(--accent);margin-bottom:14px;font-size:0.9rem">Problem: Cloudflare tokens can't restrict to a specific Worker</div>
+    <div style="font-size:0.78rem;color:var(--text2);line-height:1.9;margin-bottom:16px">
+      API Token permissions are scoped to Account/Zone level, not individual Worker names. A token with Workers Edit on your zone can deploy <b style="color:var(--text)">any</b> Worker in that zone.
+    </div>
+    <div style="font-weight:600;color:var(--green);margin-bottom:10px;font-size:0.85rem">Solution: Config-level isolation</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--bg3)">
+        <div style="font-weight:600;color:var(--accent2);margin-bottom:8px;font-size:0.82rem">&#128993; Developer (staging)</div>
+        <ul style="font-size:0.75rem;color:var(--text2);list-style:none;line-height:2">
+          <li>&#8226; Gets staging API token</li>
+          <li>&#8226; <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">wrangler.toml</code> only has <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">[env.staging]</code></li>
+          <li>&#8226; <code style="color:var(--red);font-family:var(--mono);font-size:0.72rem">[env.production]</code> <b>not in config</b></li>
+          <li>&#8226; <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">--env production</code> fails (no config)</li>
+          <li>&#8226; Deploys via <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">npm run deploy:staging</code></li>
+        </ul>
+      </div>
+      <div style="background:var(--bg2);border-radius:8px;padding:14px;border:1px solid var(--bg3)">
+        <div style="font-weight:600;color:var(--green);margin-bottom:8px;font-size:0.82rem">&#128994; CI/CD (production)</div>
+        <ul style="font-size:0.75rem;color:var(--text2);list-style:none;line-height:2">
+          <li>&#8226; Production token in GitHub Secrets</li>
+          <li>&#8226; Route passed via <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">--route</code> flag</li>
+          <li>&#8226; Triggered by merge to <code style="color:var(--text);font-family:var(--mono);font-size:0.72rem">main</code></li>
+          <li>&#8226; No human has production token</li>
+          <li>&#8226; Separate secrets per environment</li>
+        </ul>
+      </div>
     </div>
   </div>
 </section>
