@@ -707,6 +707,38 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
       <div style="font-size:0.72rem;color:#6a7490">Scope to specific permissions: Workers Scripts Edit, Account Read, etc.</div>
     </div>
   </div>
+
+  <!-- Token Permissions Reference -->
+  <div style="margin-top:20px;background:var(--card);border-radius:12px;padding:20px 24px;border:1px solid rgba(246,130,31,0.15)">
+    <div style="font-weight:600;color:var(--accent);margin-bottom:14px;font-size:0.9rem">API Token Permissions Reference</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-weight:500;color:var(--text);font-size:0.8rem;margin-bottom:8px">Account Permissions</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;line-height:2.2;color:var(--text2)">
+          <div><span style="color:var(--green)">★</span> Workers Scripts → Edit <span style="color:#6a7490">必要</span></div>
+          <div><span style="color:var(--accent2)">○</span> D1 → Edit <span style="color:#6a7490">用 D1 時</span></div>
+          <div><span style="color:var(--accent2)">○</span> Workers KV Storage → Edit <span style="color:#6a7490">用 KV 時</span></div>
+          <div><span style="color:var(--accent2)">○</span> R2 Storage → Edit <span style="color:#6a7490">用 R2 時</span></div>
+          <div><span style="color:var(--accent2)">○</span> Queues → Edit <span style="color:#6a7490">用 Queue 時</span></div>
+          <div><span style="color:#6a7490">○</span> Workers Tail → Read <span style="color:#6a7490">debug 用</span></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:500;color:var(--text);font-size:0.8rem;margin-bottom:8px">Zone Permissions</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;line-height:2.2;color:var(--text2)">
+          <div><span style="color:var(--green)">★</span> Workers Routes → Edit <span style="color:#6a7490">用 route 時</span></div>
+          <div><span style="color:var(--accent2)">○</span> DNS → Edit <span style="color:#6a7490">用 custom domain 時</span></div>
+        </div>
+        <div style="margin-top:14px;font-weight:500;color:var(--text);font-size:0.8rem;margin-bottom:8px">Zone Resources</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;line-height:2.2;color:var(--text2)">
+          <div>Include → Specific zone → <span style="color:var(--accent2)">your-domain.com</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:0.7rem;color:#6a7490;border-top:1px solid var(--bg3);padding-top:10px">
+      <span style="color:var(--green)">★</span> 必要 &nbsp;&nbsp; <span style="color:var(--accent2)">○</span> 按需開啟 &nbsp;&nbsp; 建議一次開齊常用的，避免每次加 binding 都要改 token。R2 需先在 Dashboard 啟用才會出現在選項中。
+    </div>
+  </div>
 </section>
 
 <!-- Deploy Token Strategy -->
