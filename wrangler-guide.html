@@ -692,9 +692,9 @@ footer{text-align:center;padding:30px 20px;color:var(--text2);font-size:0.75rem;
         &nbsp;&nbsp;<span style="color:var(--accent2)">CLOUDFLARE_API_TOKEN</span>:<br>
         &nbsp;&nbsp;&nbsp;&nbsp;${{ secrets.CF_TOKEN }}<br>
         &nbsp;&nbsp;<span style="color:var(--accent2)">CLOUDFLARE_ACCOUNT_ID</span>:<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;${{ secrets.CF_ACCT }}
+        &nbsp;&nbsp;&nbsp;&nbsp;${{ vars.CF_ACCOUNT_ID }}
       </div>
-      <div style="font-size:0.72rem;color:#6a7490">Shared deploy token with scoped permissions. Set in GitHub Actions secrets.</div>
+      <div style="font-size:0.72rem;color:#6a7490">Token in Secrets (encrypted), Account ID in Variables (not a secret).</div>
     </div>
     <div style="background:var(--card);border-radius:10px;padding:16px;border:1px solid rgba(246,130,31,0.1)">
       <div style="font-weight:600;color:var(--text2);font-size:0.82rem;margin-bottom:8px">🔑 API Token</div>
